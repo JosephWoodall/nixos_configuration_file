@@ -120,17 +120,17 @@ in
     LC_TIME = "en_US.UTF-8";
   };
 
-  #######
+  ########
   # KEYMAP
-  #######
+  ########
   services.xserver.xkb = {
     layout = "us";
     variant = "";
   };
 
-  #############
+  ##############
   # USER ACCOUNT
-  #############
+  ##############
   users.users.redleadr = {
     isNormalUser = true;
     description = "redleadr";
@@ -138,14 +138,14 @@ in
     packages = with pkgs; [];
   };
 
-  #######################
+  ########################
   # UNFREE PACKAGES ENABLE
-  #######################
+  ########################
   nixpkgs.config.allowUnfree = true;
 
-  ##################################
+  ######################################
   # DESKTOP ENVIRONMENT: GNOME (Wayland)
-  ##################################
+  ######################################
   services.xserver.enable = true;
   services.xserver.displayManager.gdm.enable = true;
   services.xserver.displayManager.gdm.wayland = true; 
@@ -155,9 +155,9 @@ in
   services.displayManager.autoLogin.enable = true;
   services.displayManager.autoLogin.user = "redleadr";
 
-  ################
+  #################
   # NEEDED PACKAGES
-  ################
+  #################
   environment.systemPackages = with pkgs; [
 	git
 	cmake
@@ -189,18 +189,33 @@ in
     	taplo
     	marksman
   ];
-  
-##############################
+
+#####################
+# FONTS (SYSTEM-WIDE)
+#####################
+fonts = {
+  packages = with pkgs; [
+    nerd-fonts.jetbrains-mono
+  ];
+
+  fontconfig.defaultFonts.monospace = [ "JetBrainsMono Nerd Font" ];
+};
+
+programs.gnome-terminal = {
+  enable = true;
+};
+
+###############################
 # DEFAULT VARIABLES FOR SYSTEM
-################################
+###############################
 environment.variables = {
 	EDITOR = "nvim";
 	VISUAL = "nvim";
 };
 
-  #########################
+  ##########################
   # NEEDED PACKAGES SETTINGS
-  #########################
+  ##########################
   hardware.bluetooth.enable = true;
   hardware.bluetooth.powerOnBoot = true;
   services.blueman.enable = true;
@@ -217,8 +232,8 @@ environment.variables = {
     nvidia-vaapi-driver
   ];
 
-  #####################
+  ######################
   # SYSTEM STATE VERSION
-  #####################
+  ######################
   system.stateVersion = "25.05";
 }
