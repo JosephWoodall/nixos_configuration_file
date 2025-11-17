@@ -168,8 +168,7 @@ in
     	wget
     	unzip
     	google-chrome
-    	# neovim → replaced with our full LazyVim build
-    	lazyvim            # ← THIS IS YOUR NEW NEOVIM
+    	lazyvim        
     	networkmanagerapplet
     	blueman
     	steam
@@ -181,13 +180,16 @@ in
     	file-roller
     	gnome-calendar
     	gnome-system-monitor
-    	# Optional but recommended: common LSP servers available globally
     	nil
     	nixd
     	pyright
     	rust-analyzer
     	taplo
     	marksman
+    	fzf
+    	ripgrep 
+    	fd 
+    	lazygit
   ];
 
 #####################
