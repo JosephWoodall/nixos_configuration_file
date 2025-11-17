@@ -2,37 +2,40 @@
 
 let
   # This is the entire LazyVim setup — fully managed by Nix
-  lazyvim = pkgs.neovim.override {
+    lazyvim = pkgs.neovim.override {
     configure = {
       customRC = /* vim */ ''
-        " Bootstrap lazy.nvim + LazyVim on first launch
         lua << EOF
         local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
         if not vim.loop.fs_stat(lazypath) then
           vim.fn.system({
-            "git",
-            "clone",
-            "--filter=blob:none",
+            "git", "clone", "--filter=blob:none",
             "https://github.com/folke/lazy.nvim.git",
-            "--branch=stable",
-            lazypath,
+            "--branch=stable", lazypath,
           })
         end
         vim.opt.rtp:prepend(lazypath)
 
+        -- Force up-to-date pynvim
+        vim.g.python3_host_prog = "${pkgs.python312.withPackages (ps: [ ps.pynvim ])}/bin/python"
+
         require("lazy").setup({
           spec = {
-            -- Import the official LazyVim distribution
             { "LazyVim/LazyVim", import = "lazyvim.plugins" },
-            -- All the popular extras most people enable
+
+            -- Your extras (unchanged)
             { import = "lazyvim.plugins.extras.ui.mini-starter" },
             { import = "lazyvim.plugins.extras.coding.mini-surround" },
             { import = "lazyvim.plugins.extras.editor.harpoon2" },
             { import = "lazyvim.plugins.extras.util.mini-hipatterns" },
+
+            -- FIX: Disable Nix Treesitter to avoid path conflicts with Lazy
+            { "nvim-treesitter/nvim-treesitter", enabled = false },
+            { "nvim-treesitter/nvim-treesitter-textobjects", enabled = false },
           },
           defaults = { lazy = true },
           install = { colorscheme = { "catppuccin", "tokyonight" } },
-          checker = { enabled = true },
+          checker = { enabled = true }, -- Auto-update to fix renames/bugs
           performance = {
             rtp = {
               disabled_plugins = {
@@ -42,7 +45,6 @@ let
           },
         })
 
-        -- Basic LazyVim defaults everyone loves
         vim.g.mapleader = " "
         vim.opt.number = true
         vim.opt.relativenumber = true
@@ -50,15 +52,12 @@ let
         vim.opt.termguicolors = true
         EOF
       '';
-
       packages.all.start = with pkgs.vimPlugins; [
         lazy-nvim
         LazyVim
-
-        # Core plugins that LazyVim expects (automatically pulled otherwise, but we pin them)
+        # Core plugins (removed nvim-treesitter.withAllGrammars to let Lazy handle it)
         catppuccin-nvim
         tokyonight-nvim
-        nvim-treesitter.withAllGrammars
         plenary-nvim
         telescope-nvim
         which-key-nvim
@@ -150,6 +149,12 @@ in
   services.xserver.displayManager.gdm.enable = true;
   services.xserver.displayManager.gdm.wayland = true; 
   services.xserver.desktopManager.gnome.enable = true;
+services.xserver.desktopManager.gnome.extraGSettingsOverrides = ''
+  # Set Kitty as the default terminal
+  [org.gnome.desktop.default-applications.terminal]
+  exec = 'kitty'
+  exec-arg = '-e'
+'';
 
   # Auto-login to GNOME
   services.displayManager.autoLogin.enable = true;
@@ -175,8 +180,8 @@ in
     	wdisplays
     	wl-clipboard
     	fastfetch
+    	kitty
     	gnome-tweaks
-    	gnome-terminal
     	nautilus
     	file-roller
     	gnome-calendar
@@ -196,14 +201,12 @@ in
     	zoxide
     	bat
     	jq
-    	python312Packages.pynvim
+    	(python312.withPackages (ps: [ ps.pynvim ]))
     	luajit
     	imagemagick
     	ghostscript
     	mermaid-cli
     	tectonic
-    	tree-sitter-grammars.tree-sitter-regex
-    	tree-sitter-grammars.tree-sitter-bash
     	luarocks
     	sqlite
   ];
@@ -217,10 +220,6 @@ fonts = {
   ];
 
   fontconfig.defaultFonts.monospace = [ "JetBrainsMono Nerd Font" ];
-};
-
-programs.gnome-terminal = {
-  enable = true;
 };
 
 ###############################
@@ -237,7 +236,8 @@ environment.variables = {
   hardware.bluetooth.enable = true;
   hardware.bluetooth.powerOnBoot = true;
   services.blueman.enable = true;
-
+	
+	programs.gnome-terminal.enable = false;
   # Steam
   programs.steam = {
     enable = true;
