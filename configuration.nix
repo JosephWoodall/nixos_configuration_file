@@ -164,7 +164,7 @@ in
 	gnumake
 	tree-sitter
 	gcc
-    	htop
+    	bottom
     	wget
     	unzip
     	google-chrome
@@ -173,6 +173,7 @@ in
     	blueman
     	steam
     	wdisplays
+    	wl-clipboard
     	fastfetch
     	gnome-tweaks
     	gnome-terminal
@@ -190,6 +191,21 @@ in
     	ripgrep 
     	fd 
     	lazygit
+    	delta 
+    	eza
+    	zoxide
+    	bat
+    	jq
+    	python312Packages.pynvim
+    	luajit
+    	imagemagick
+    	ghostscript
+    	mermaid-cli
+    	tectonic
+    	tree-sitter-grammars.tree-sitter-regex
+    	tree-sitter-grammars.tree-sitter-bash
+    	luarocks
+    	sqlite
   ];
 
 #####################
