@@ -55,7 +55,6 @@ let
       packages.all.start = with pkgs.vimPlugins; [
         lazy-nvim
         LazyVim
-        # Core plugins (removed nvim-treesitter.withAllGrammars to let Lazy handle it)
         catppuccin-nvim
         tokyonight-nvim
         plenary-nvim
@@ -209,6 +208,9 @@ services.xserver.desktopManager.gnome.extraGSettingsOverrides = ''
     	tectonic
     	luarocks
     	sqlite
+    	
+    	#languages 
+    	rustup
   ];
 
 #####################
@@ -237,7 +239,8 @@ environment.variables = {
   hardware.bluetooth.powerOnBoot = true;
   services.blueman.enable = true;
 	
-	programs.gnome-terminal.enable = false;
+programs.gnome-terminal.enable = false;
+
   # Steam
   programs.steam = {
     enable = true;
