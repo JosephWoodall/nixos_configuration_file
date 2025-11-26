@@ -263,6 +263,63 @@ let
           require("Comment").setup()
         end,
       },
+
+      -- Multiple persistent terminals
+      {
+        "akinsho/toggleterm.nvim",
+        version = "*",
+        config = function()
+          require("toggleterm").setup({
+            size = 15,
+            open_mapping = [[<leader>t]],
+            hide_numbers = true,
+            shade_terminals = true,
+            start_in_insert = true,
+            insert_mappings = true,
+            terminal_mappings = true,
+            persist_size = true,
+            direction = "horizontal",
+            close_on_exit = true,
+            shell = vim.o.shell,
+          })
+
+          -- Terminal keymaps
+          function _G.set_terminal_keymaps()
+            local opts = {buffer = 0}
+            vim.keymap.set('t', '<esc>', [[<C-\><C-n>]], opts)
+            vim.keymap.set('t', '<C-Left>', [[<Cmd>wincmd h<CR>]], opts)
+            vim.keymap.set('t', '<C-Down>', [[<Cmd>wincmd j<CR>]], opts)
+            vim.keymap.set('t', '<C-Up>', [[<Cmd>wincmd k<CR>]], opts)
+            vim.keymap.set('t', '<C-Right>', [[<Cmd>wincmd l<CR>]], opts)
+          end
+
+          vim.cmd('autocmd! TermOpen term://* lua set_terminal_keymaps()')
+
+          -- Create specific terminal instances
+          local Terminal = require("toggleterm.terminal").Terminal
+          
+          -- Terminal 1
+          local term1 = Terminal:new({ count = 1 })
+          vim.keymap.set("n", "<leader>t1", function() term1:toggle() end, { noremap = true, silent = true })
+          
+          -- Terminal 2
+          local term2 = Terminal:new({ count = 2 })
+          vim.keymap.set("n", "<leader>t2", function() term2:toggle() end, { noremap = true, silent = true })
+          
+          -- Terminal 3
+          local term3 = Terminal:new({ count = 3 })
+          vim.keymap.set("n", "<leader>t3", function() term3:toggle() end, { noremap = true, silent = true })
+
+          -- Floating terminal
+          local float_term = Terminal:new({ 
+            direction = "float",
+            float_opts = {
+              border = "curved",
+            },
+          })
+          vim.keymap.set("n", "<leader>tf", function() float_term:toggle() end, { noremap = true, silent = true })
+        end,
+      },
     })
 
     -- Open Neo-tree on startup
@@ -274,33 +331,19 @@ let
       end,
     })
 
-    -- Simple terminal toggle with Ctrl+\
-    vim.keymap.set("n", "<C-\\>", function()
-      vim.cmd("botright 15split | terminal")
-      vim.cmd("startinsert")
-    end, { noremap = true, silent = true })
-    
-    -- Close terminal with Ctrl+\ when in terminal mode
-    vim.keymap.set("t", "<C-\\>", "<C-\\><C-n>:q<CR>", { noremap = true, silent = true })
-    
-    -- Exit terminal mode with Esc
-    vim.keymap.set("t", "<Esc>", "<C-\\><C-n>", { noremap = true, silent = true })
-
     -- Window navigation with Ctrl + arrow keys
     vim.keymap.set("n", "<C-Left>", "<C-w>h", { noremap = true, silent = true })
     vim.keymap.set("n", "<C-Down>", "<C-w>j", { noremap = true, silent = true })
     vim.keymap.set("n", "<C-Up>", "<C-w>k", { noremap = true, silent = true })
     vim.keymap.set("n", "<C-Right>", "<C-w>l", { noremap = true, silent = true })
-    
-    -- Window navigation from terminal mode
-    vim.keymap.set("t", "<C-Left>", "<C-\\><C-n><C-w>h", { noremap = true, silent = true })
-    vim.keymap.set("t", "<C-Down>", "<C-\\><C-n><C-w>j", { noremap = true, silent = true })
-    vim.keymap.set("t", "<C-Up>", "<C-\\><C-n><C-w>k", { noremap = true, silent = true })
-    vim.keymap.set("t", "<C-Right>", "<C-\\><C-n><C-w>l", { noremap = true, silent = true })
 
-    -- Modern editor keybinds
+    -- ============================================
+    -- NOTEPAD++ STYLE KEYBINDS (INSERT MODE)
+    -- ============================================
+    
     -- Ctrl+A to select all
     vim.keymap.set("n", "<C-a>", "ggVG", { noremap = true, silent = true })
+    vim.keymap.set("i", "<C-a>", "<Esc>ggVG", { noremap = true, silent = true })
     
     -- Ctrl+S to save
     vim.keymap.set("n", "<C-s>", ":w<CR>", { noremap = true, silent = true })
@@ -310,20 +353,70 @@ let
     vim.keymap.set("n", "<C-z>", "u", { noremap = true, silent = true })
     vim.keymap.set("i", "<C-z>", "<Esc>ua", { noremap = true, silent = true })
     
-    -- Ctrl+Y to redo
+    -- Ctrl+Y to redo (Notepad++ uses Ctrl+Y for redo)
     vim.keymap.set("n", "<C-y>", "<C-r>", { noremap = true, silent = true })
     vim.keymap.set("i", "<C-y>", "<Esc><C-r>a", { noremap = true, silent = true })
     
     -- Ctrl+F to find in file
     vim.keymap.set("n", "<C-f>", "/", { noremap = true })
+    vim.keymap.set("i", "<C-f>", "<Esc>/", { noremap = true })
+    
+    -- Ctrl+H to find and replace
+    vim.keymap.set("n", "<C-h>", ":%s/", { noremap = true })
+    vim.keymap.set("i", "<C-h>", "<Esc>:%s/", { noremap = true })
     
     -- Ctrl+D to duplicate line
     vim.keymap.set("n", "<C-d>", "yyp", { noremap = true, silent = true })
     vim.keymap.set("i", "<C-d>", "<Esc>yypa", { noremap = true, silent = true })
     
-    -- Ctrl+/ to toggle comment (requires commenting plugin)
+    -- Ctrl+L to delete current line
+    vim.keymap.set("n", "<C-l>", "dd", { noremap = true, silent = true })
+    vim.keymap.set("i", "<C-l>", "<Esc>dda", { noremap = true, silent = true })
+    
+    -- Ctrl+Shift+Up/Down to move line up/down
+    vim.keymap.set("n", "<C-S-Up>", ":m .-2<CR>==", { noremap = true, silent = true })
+    vim.keymap.set("n", "<C-S-Down>", ":m .+1<CR>==", { noremap = true, silent = true })
+    vim.keymap.set("i", "<C-S-Up>", "<Esc>:m .-2<CR>==a", { noremap = true, silent = true })
+    vim.keymap.set("i", "<C-S-Down>", "<Esc>:m .+1<CR>==a", { noremap = true, silent = true })
+    
+    -- Ctrl+/ to toggle comment
     vim.keymap.set("n", "<C-_>", "gcc", { noremap = false, silent = true })
     vim.keymap.set("v", "<C-_>", "gc", { noremap = false, silent = true })
+    vim.keymap.set("i", "<C-_>", "<Esc>gcca", { noremap = false, silent = true })
+    
+    -- Ctrl+Q to close file/buffer
+    vim.keymap.set("n", "<C-q>", ":bd<CR>", { noremap = true, silent = true })
+    vim.keymap.set("i", "<C-q>", "<Esc>:bd<CR>", { noremap = true, silent = true })
+    
+    -- Ctrl+W to close file (alternative)
+    vim.keymap.set("n", "<C-w>", ":bd<CR>", { noremap = true, silent = true })
+    vim.keymap.set("i", "<C-w>", "<Esc>:bd<CR>", { noremap = true, silent = true })
+    
+    -- Ctrl+Tab to switch to next buffer
+    vim.keymap.set("n", "<C-Tab>", ":bnext<CR>", { noremap = true, silent = true })
+    vim.keymap.set("i", "<C-Tab>", "<Esc>:bnext<CR>", { noremap = true, silent = true })
+    
+    -- Ctrl+Shift+Tab to switch to previous buffer
+    vim.keymap.set("n", "<C-S-Tab>", ":bprevious<CR>", { noremap = true, silent = true })
+    vim.keymap.set("i", "<C-S-Tab>", "<Esc>:bprevious<CR>", { noremap = true, silent = true })
+    
+    -- Ctrl+N to create new file
+    vim.keymap.set("n", "<C-n>", ":enew<CR>", { noremap = true, silent = true })
+    vim.keymap.set("i", "<C-n>", "<Esc>:enew<CR>", { noremap = true, silent = true })
+    
+    -- Ctrl+O to open file
+    vim.keymap.set("n", "<C-o>", ":Telescope find_files<CR>", { noremap = true, silent = true })
+    vim.keymap.set("i", "<C-o>", "<Esc>:Telescope find_files<CR>", { noremap = true, silent = true })
+    
+    -- Home/End keys in insert mode (like Notepad++)
+    vim.keymap.set("i", "<Home>", "<C-o>^", { noremap = true, silent = true })
+    vim.keymap.set("i", "<End>", "<C-o>$", { noremap = true, silent = true })
+    
+    -- Ctrl+Home/End to go to start/end of file
+    vim.keymap.set("n", "<C-Home>", "gg", { noremap = true, silent = true })
+    vim.keymap.set("n", "<C-End>", "G", { noremap = true, silent = true })
+    vim.keymap.set("i", "<C-Home>", "<Esc>gga", { noremap = true, silent = true })
+    vim.keymap.set("i", "<C-End>", "<Esc>Ga", { noremap = true, silent = true })
   '';
 in
 {
