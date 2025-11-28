@@ -1,27 +1,9 @@
 { config, pkgs, ... }:
 
 let
-  neovimConfig = pkgs.writeText "init.lua" ''
-    -- Basic settings
-    vim.g.mapleader = " "
-    vim.g.maplocalleader = " "
-
-    vim.opt.number = true
-    vim.opt.relativenumber = true
-    vim.opt.mouse = "a"
-    vim.opt.ignorecase = true
-    vim.opt.smartcase = true
-    vim.opt.hlsearch = false
-    vim.opt.wrap = false
-    vim.opt.tabstop = 4
-    vim.opt.shiftwidth = 4
-    vim.opt.expandtab = true
-    vim.opt.termguicolors = true
-    vim.opt.signcolumn = "yes"
-    vim.opt.updatetime = 250
-    vim.opt.clipboard = "unnamedplus"
-
-    -- Bootstrap lazy.nvim plugin manager
+  # Custom LazyVim configuration
+  lazyVimConfig = pkgs.writeText "init.lua" ''
+    -- Bootstrap lazy.nvim
     local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
     if not vim.loop.fs_stat(lazypath) then
       vim.fn.system({
@@ -35,388 +17,41 @@ let
     end
     vim.opt.rtp:prepend(lazypath)
 
-    -- Plugin specifications
+    -- Load LazyVim
     require("lazy").setup({
-      -- Colorscheme
-      {
-        "folke/tokyonight.nvim",
+      spec = {
+        -- Import LazyVim base configuration
+        { "LazyVim/LazyVim", import = "lazyvim.plugins" },
+        
+        -- Import all LazyVim extras you want
+        { import = "lazyvim.plugins.extras.lang.rust" },
+        { import = "lazyvim.plugins.extras.lang.python" },
+        { import = "lazyvim.plugins.extras.lang.json" },
+        { import = "lazyvim.plugins.extras.lang.markdown" },
+        { import = "lazyvim.plugins.extras.coding.copilot" },
+        { import = "lazyvim.plugins.extras.ui.mini-animate" },
+        
+        -- Your custom plugins can go here
+      },
+      defaults = {
         lazy = false,
-        priority = 1000,
-        config = function()
-          require("tokyonight").setup({
-            style = "night",
-            transparent = false,
-          })
-          vim.cmd([[colorscheme tokyonight]])
-        end,
+        version = false,
       },
-
-      -- File explorer
-      {
-        "nvim-neo-tree/neo-tree.nvim",
-        branch = "v3.x",
-        dependencies = {
-          "nvim-lua/plenary.nvim",
-          "nvim-tree/nvim-web-devicons",
-          "MunifTanjim/nui.nvim",
+      install = { colorscheme = { "tokyonight" } },
+      checker = { enabled = true },
+      performance = {
+        rtp = {
+          disabled_plugins = {
+            "gzip",
+            "tarPlugin",
+            "tohtml",
+            "tutor",
+            "zipPlugin",
+          },
         },
-        config = function()
-          require("neo-tree").setup({
-            close_if_last_window = true,
-            window = {
-              width = 30,
-            },
-            filesystem = {
-              follow_current_file = {
-                enabled = true,
-              },
-              filtered_items = {
-                hide_dotfiles = false,
-                hide_gitignored = false,
-              },
-            },
-          })
-          vim.keymap.set("n", "<leader>e", ":Neotree toggle<CR>", { silent = true })
-        end,
-      },
-
-      -- Fuzzy finder
-      {
-        "nvim-telescope/telescope.nvim",
-        dependencies = { "nvim-lua/plenary.nvim" },
-        config = function()
-          require("telescope").setup({})
-          local builtin = require("telescope.builtin")
-          vim.keymap.set("n", "<leader>ff", builtin.find_files, {})
-          vim.keymap.set("n", "<leader>fg", builtin.live_grep, {})
-          vim.keymap.set("n", "<leader>fb", builtin.buffers, {})
-        end,
-      },
-
-      -- Git integration
-      {
-        "lewis6991/gitsigns.nvim",
-        config = function()
-          require("gitsigns").setup({
-            signs = {
-              add = { text = "│" },
-              change = { text = "│" },
-              delete = { text = "_" },
-              topdelete = { text = "‾" },
-              changedelete = { text = "~" },
-            },
-            current_line_blame = true,
-            current_line_blame_opts = {
-              delay = 300,
-            },
-          })
-        end,
-      },
-
-      -- LSP Configuration
-      {
-        "neovim/nvim-lspconfig",
-        dependencies = {
-          "williamboman/mason.nvim",
-          "williamboman/mason-lspconfig.nvim",
-        },
-        config = function()
-          require("mason").setup()
-          require("mason-lspconfig").setup({
-            ensure_installed = { "rust_analyzer", "pyright" },
-            automatic_installation = true,
-          })
-
-          -- Use modern vim.lsp.config API
-          local configs = require("lspconfig.configs")
-          
-          -- Rust Analyzer
-          vim.lsp.config("rust_analyzer", {
-            cmd = { "rust-analyzer" },
-            filetypes = { "rust" },
-            root_markers = { "Cargo.toml" },
-            settings = {
-              ["rust-analyzer"] = {
-                cargo = {
-                  allFeatures = true,
-                },
-                checkOnSave = {
-                  command = "clippy",
-                },
-              },
-            },
-          })
-
-          -- Pyright
-          vim.lsp.config("pyright", {
-            cmd = { "pyright-langserver", "--stdio" },
-            filetypes = { "python" },
-            root_markers = { "pyproject.toml", "setup.py", "requirements.txt", ".git" },
-          })
-
-          -- Enable LSP servers
-          vim.lsp.enable("rust_analyzer")
-          vim.lsp.enable("pyright")
-
-          -- Keybindings for LSP
-          vim.keymap.set("n", "gd", vim.lsp.buf.definition, {})
-          vim.keymap.set("n", "K", vim.lsp.buf.hover, {})
-          vim.keymap.set("n", "<leader>ca", vim.lsp.buf.code_action, {})
-          vim.keymap.set("n", "<leader>rn", vim.lsp.buf.rename, {})
-        end,
-      },
-
-      -- Autocompletion
-      {
-        "hrsh7th/nvim-cmp",
-        dependencies = {
-          "hrsh7th/cmp-nvim-lsp",
-          "hrsh7th/cmp-buffer",
-          "hrsh7th/cmp-path",
-          "L3MON4D3/LuaSnip",
-          "saadparwaiz1/cmp_luasnip",
-        },
-        config = function()
-          local cmp = require("cmp")
-          local luasnip = require("luasnip")
-
-          cmp.setup({
-            snippet = {
-              expand = function(args)
-                luasnip.lsp_expand(args.body)
-              end,
-            },
-            mapping = cmp.mapping.preset.insert({
-              ["<C-b>"] = cmp.mapping.scroll_docs(-4),
-              ["<C-f>"] = cmp.mapping.scroll_docs(4),
-              ["<C-Space>"] = cmp.mapping.complete(),
-              ["<C-e>"] = cmp.mapping.abort(),
-              ["<CR>"] = cmp.mapping.confirm({ select = true }),
-              ["<Tab>"] = cmp.mapping(function(fallback)
-                if cmp.visible() then
-                  cmp.select_next_item()
-                else
-                  fallback()
-                end
-              end, { "i", "s" }),
-            }),
-            sources = cmp.config.sources({
-              { name = "nvim_lsp" },
-              { name = "luasnip" },
-            }, {
-              { name = "buffer" },
-              { name = "path" },
-            }),
-          })
-        end,
-      },
-
-      -- Statusline
-      {
-        "nvim-lualine/lualine.nvim",
-        dependencies = { "nvim-tree/nvim-web-devicons" },
-        config = function()
-          require("lualine").setup({
-            options = {
-              theme = "tokyonight",
-              component_separators = { left = "|", right = "|" },
-              section_separators = { left = "", right = "" },
-            },
-            sections = {
-              lualine_a = { "mode" },
-              lualine_b = { "branch", "diff", "diagnostics" },
-              lualine_c = { "filename" },
-              lualine_x = { "encoding", "fileformat", "filetype" },
-              lualine_y = { "progress" },
-              lualine_z = { "location" },
-            },
-          })
-        end,
-      },
-
-      -- Treesitter for better syntax highlighting
-      {
-        "nvim-treesitter/nvim-treesitter",
-        build = ":TSUpdate",
-        config = function()
-          require("nvim-treesitter.configs").setup({
-            ensure_installed = { "rust", "python", "lua", "vim" },
-            highlight = { enable = true },
-            indent = { enable = true },
-          })
-        end,
-      },
-
-      -- Which-key to show keybindings
-      {
-        "folke/which-key.nvim",
-        event = "VeryLazy",
-        config = function()
-          require("which-key").setup({})
-        end,
-      },
-
-      -- Commenting plugin
-      {
-        "numToStr/Comment.nvim",
-        config = function()
-          require("Comment").setup()
-        end,
-      },
-
-      -- Multiple persistent terminals
-      {
-        "akinsho/toggleterm.nvim",
-        version = "*",
-        config = function()
-          require("toggleterm").setup({
-            size = 15,
-            open_mapping = [[<leader>t]],
-            hide_numbers = true,
-            shade_terminals = true,
-            start_in_insert = true,
-            insert_mappings = true,
-            terminal_mappings = true,
-            persist_size = true,
-            direction = "horizontal",
-            close_on_exit = true,
-            shell = vim.o.shell,
-          })
-
-          -- Terminal keymaps
-          function _G.set_terminal_keymaps()
-            local opts = {buffer = 0}
-            vim.keymap.set('t', '<esc>', [[<C-\><C-n>]], opts)
-            vim.keymap.set('t', '<C-Left>', [[<Cmd>wincmd h<CR>]], opts)
-            vim.keymap.set('t', '<C-Down>', [[<Cmd>wincmd j<CR>]], opts)
-            vim.keymap.set('t', '<C-Up>', [[<Cmd>wincmd k<CR>]], opts)
-            vim.keymap.set('t', '<C-Right>', [[<Cmd>wincmd l<CR>]], opts)
-          end
-
-          vim.cmd('autocmd! TermOpen term://* lua set_terminal_keymaps()')
-
-          -- Create specific terminal instances
-          local Terminal = require("toggleterm.terminal").Terminal
-          
-          -- Terminal 1
-          local term1 = Terminal:new({ count = 1 })
-          vim.keymap.set("n", "<leader>t1", function() term1:toggle() end, { noremap = true, silent = true })
-          
-          -- Terminal 2
-          local term2 = Terminal:new({ count = 2 })
-          vim.keymap.set("n", "<leader>t2", function() term2:toggle() end, { noremap = true, silent = true })
-          
-          -- Terminal 3
-          local term3 = Terminal:new({ count = 3 })
-          vim.keymap.set("n", "<leader>t3", function() term3:toggle() end, { noremap = true, silent = true })
-
-          -- Floating terminal
-          local float_term = Terminal:new({ 
-            direction = "float",
-            float_opts = {
-              border = "curved",
-            },
-          })
-          vim.keymap.set("n", "<leader>tf", function() float_term:toggle() end, { noremap = true, silent = true })
-        end,
       },
     })
-
-    -- Open Neo-tree on startup
-    vim.api.nvim_create_autocmd("VimEnter", {
-      callback = function()
-        if vim.fn.argc() == 0 then
-          vim.cmd("Neotree show")
-        end
-      end,
-    })
-
-    -- Window navigation with Ctrl + arrow keys
-    vim.keymap.set("n", "<C-Left>", "<C-w>h", { noremap = true, silent = true })
-    vim.keymap.set("n", "<C-Down>", "<C-w>j", { noremap = true, silent = true })
-    vim.keymap.set("n", "<C-Up>", "<C-w>k", { noremap = true, silent = true })
-    vim.keymap.set("n", "<C-Right>", "<C-w>l", { noremap = true, silent = true })
-
-    -- ============================================
-    -- NOTEPAD++ STYLE KEYBINDS (INSERT MODE)
-    -- ============================================
-    
-    -- Ctrl+A to select all
-    vim.keymap.set("n", "<C-a>", "ggVG", { noremap = true, silent = true })
-    vim.keymap.set("i", "<C-a>", "<Esc>ggVG", { noremap = true, silent = true })
-    
-    -- Ctrl+S to save
-    vim.keymap.set("n", "<C-s>", ":w<CR>", { noremap = true, silent = true })
-    vim.keymap.set("i", "<C-s>", "<Esc>:w<CR>a", { noremap = true, silent = true })
-    
-    -- Ctrl+Z to undo
-    vim.keymap.set("n", "<C-z>", "u", { noremap = true, silent = true })
-    vim.keymap.set("i", "<C-z>", "<Esc>ua", { noremap = true, silent = true })
-    
-    -- Ctrl+Y to redo (Notepad++ uses Ctrl+Y for redo)
-    vim.keymap.set("n", "<C-y>", "<C-r>", { noremap = true, silent = true })
-    vim.keymap.set("i", "<C-y>", "<Esc><C-r>a", { noremap = true, silent = true })
-    
-    -- Ctrl+F to find in file
-    vim.keymap.set("n", "<C-f>", "/", { noremap = true })
-    vim.keymap.set("i", "<C-f>", "<Esc>/", { noremap = true })
-    
-    -- Ctrl+H to find and replace
-    vim.keymap.set("n", "<C-h>", ":%s/", { noremap = true })
-    vim.keymap.set("i", "<C-h>", "<Esc>:%s/", { noremap = true })
-    
-    -- Ctrl+D to duplicate line
-    vim.keymap.set("n", "<C-d>", "yyp", { noremap = true, silent = true })
-    vim.keymap.set("i", "<C-d>", "<Esc>yypa", { noremap = true, silent = true })
-    
-    -- Ctrl+L to delete current line
-    vim.keymap.set("n", "<C-l>", "dd", { noremap = true, silent = true })
-    vim.keymap.set("i", "<C-l>", "<Esc>dda", { noremap = true, silent = true })
-    
-    -- Ctrl+Shift+Up/Down to move line up/down
-    vim.keymap.set("n", "<C-S-Up>", ":m .-2<CR>==", { noremap = true, silent = true })
-    vim.keymap.set("n", "<C-S-Down>", ":m .+1<CR>==", { noremap = true, silent = true })
-    vim.keymap.set("i", "<C-S-Up>", "<Esc>:m .-2<CR>==a", { noremap = true, silent = true })
-    vim.keymap.set("i", "<C-S-Down>", "<Esc>:m .+1<CR>==a", { noremap = true, silent = true })
-    
-    -- Ctrl+/ to toggle comment
-    vim.keymap.set("n", "<C-_>", "gcc", { noremap = false, silent = true })
-    vim.keymap.set("v", "<C-_>", "gc", { noremap = false, silent = true })
-    vim.keymap.set("i", "<C-_>", "<Esc>gcca", { noremap = false, silent = true })
-    
-    -- Ctrl+Q to close file/buffer
-    vim.keymap.set("n", "<C-q>", ":bd<CR>", { noremap = true, silent = true })
-    vim.keymap.set("i", "<C-q>", "<Esc>:bd<CR>", { noremap = true, silent = true })
-    
-    -- Ctrl+W to close file (alternative)
-    vim.keymap.set("n", "<C-w>", ":bd<CR>", { noremap = true, silent = true })
-    vim.keymap.set("i", "<C-w>", "<Esc>:bd<CR>", { noremap = true, silent = true })
-    
-    -- Ctrl+Tab to switch to next buffer
-    vim.keymap.set("n", "<C-Tab>", ":bnext<CR>", { noremap = true, silent = true })
-    vim.keymap.set("i", "<C-Tab>", "<Esc>:bnext<CR>", { noremap = true, silent = true })
-    
-    -- Ctrl+Shift+Tab to switch to previous buffer
-    vim.keymap.set("n", "<C-S-Tab>", ":bprevious<CR>", { noremap = true, silent = true })
-    vim.keymap.set("i", "<C-S-Tab>", "<Esc>:bprevious<CR>", { noremap = true, silent = true })
-    
-    -- Ctrl+N to create new file
-    vim.keymap.set("n", "<C-n>", ":enew<CR>", { noremap = true, silent = true })
-    vim.keymap.set("i", "<C-n>", "<Esc>:enew<CR>", { noremap = true, silent = true })
-    
-    -- Ctrl+O to open file
-    vim.keymap.set("n", "<C-o>", ":Telescope find_files<CR>", { noremap = true, silent = true })
-    vim.keymap.set("i", "<C-o>", "<Esc>:Telescope find_files<CR>", { noremap = true, silent = true })
-    
-    -- Home/End keys in insert mode (like Notepad++)
-    vim.keymap.set("i", "<Home>", "<C-o>^", { noremap = true, silent = true })
-    vim.keymap.set("i", "<End>", "<C-o>$", { noremap = true, silent = true })
-    
-    -- Ctrl+Home/End to go to start/end of file
-    vim.keymap.set("n", "<C-Home>", "gg", { noremap = true, silent = true })
-    vim.keymap.set("n", "<C-End>", "G", { noremap = true, silent = true })
-    vim.keymap.set("i", "<C-Home>", "<Esc>gga", { noremap = true, silent = true })
-    vim.keymap.set("i", "<C-End>", "<Esc>Ga", { noremap = true, silent = true })
+   
   '';
 in
 {
@@ -482,31 +117,40 @@ in
   services.displayManager.autoLogin.enable = true;
   services.displayManager.autoLogin.user = "redleadr";
   
-  # Packages with Neovim
+  # Packages with LazyVim-configured Neovim
   environment.systemPackages = with pkgs; [
-    # Neovim with custom config
+    # Neovim with LazyVim
     (neovim.override {
       configure = {
         customRC = ''
-          luafile ${neovimConfig}
+          luafile ${lazyVimConfig}
         '';
       };
     })
     
-    # Existing packages
+    # Development tools
     git cmake gnumake tree-sitter gcc bottom wget unzip
-    google-chrome
-    networkmanagerapplet blueman steam wdisplays wl-clipboard fastfetch kitty
-    gnome-tweaks nautilus file-roller gnome-calendar gnome-system-monitor
-    nil nixd pyright rust-analyzer taplo marksman fzf ripgrep fd lazygit delta
-    eza zoxide bat jq (python312.withPackages (ps: [ ps.pynvim ])) luajit
-    imagemagick ghostscript mermaid-cli tectonic luarocks sqlite rustup
-    zed-editor redis
+    nodejs  # Required by many LSP servers and LazyVim features
+    cargo rustc rustup  # Rust toolchain
+    (python312.withPackages (ps: [ ps.pynvim ]))
+    luajit luarocks
     
-    # Additional tools for Neovim
-    nodejs  # Required by some LSP servers
-    cargo   # For Rust (you already have rustup, but this ensures cargo is available)
-    rustc
+    # LSP servers and formatters
+    nil nixd pyright rust-analyzer taplo marksman
+    
+    # CLI utilities
+    fzf ripgrep fd lazygit delta eza zoxide bat jq
+    
+    # Applications
+    google-chrome
+    networkmanagerapplet blueman steam wdisplays wl-clipboard 
+    fastfetch kitty zed-editor redis
+    
+    # GNOME tools
+    gnome-tweaks nautilus file-roller gnome-calendar gnome-system-monitor
+    
+    # Document processing
+    imagemagick ghostscript mermaid-cli tectonic sqlite
   ];
   
   # Default editor
@@ -515,7 +159,7 @@ in
     VISUAL = "nvim";
   };
   
-  # Git configuration (required for lazy.nvim)
+  # Git configuration (required for lazy.nvim and LazyVim)
   programs.git.enable = true;
   
   # Misc
