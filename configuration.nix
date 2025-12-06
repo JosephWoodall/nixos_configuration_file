@@ -37,9 +37,10 @@
   services.displayManager.autoLogin.enable = true;
   services.displayManager.autoLogin.user = "redleadr";
 
-  # ────────────────────── 2025 TERMINAL ENDGAME STACK (micro edition) ──────────────────────
+  # ────────────────────── 2025 TERMINAL ENDGAME STACK (Micro-Centric) ──────────────────────
   environment.systemPackages = with pkgs; [
-    zellij micro lf lazygit
+    # Keeping zellij just for session management (if you still want the `dev` command)
+    zellij micro lazygit # Removed 'lf'
     fzf ripgrep fd eza bat zoxide delta bottom fastfetch
 
     pyright
@@ -50,27 +51,20 @@
     taplo
     yaml-language-server
 
-    # Nerd fonts (optional)
-    # pkgs.nerd-fonts.fira-code
-    # pkgs.nerd-fonts.hack
-
     kitty google-chrome steam zed-editor redis
   ];
 
   # Global `dev` command
   environment.interactiveShellInit = ''
+    # The 'dev' command now just launches a single pane running micro
     dev() { zellij --layout dev; }
   '';
 
-  # Zellij dev layout with micro + lf
+  # 1. 🧹 SIMPLIFIED ZELLIJ LAYOUT (Single Pane for Micro)
   environment.etc."zellij/layouts/dev.kdl".text = ''
     layout {
       tab {
-        pane split_direction="vertical" size="70%" {
-          pane command="micro" { args "."; }
-        }
-        pane command="lf"
-        pane command="lazygit"
+        pane command="micro" { args "."; }
       }
     }
   '';
@@ -81,7 +75,7 @@
     chown -R redleadr:users /home/redleadr/.config/zellij
   '';
 
-  # Zellij config (Ctrl+arrows)
+  # Zellij config (Ctrl+arrows) - UNCHANGED
   environment.etc."zellij/config.kdl".text = ''
     theme "catppuccin-mocha"
     keybinds clear-defaults=true {
@@ -94,7 +88,9 @@
     }
   '';
 
-  # micro global config
+  # 2. 🔌 MICRO CONFIG: Global Settings and Bindings
+
+  # Settings
   environment.etc."micro/settings.json".text = builtins.toJSON {
     "*.go" = { tabsize = 4; };
     "*.rs" = { tabsize = 4; };
@@ -110,30 +106,37 @@
     scrollbar = true;
     lsp = true;
   };
-
+  
+  # Bindings for the file manager (Ctrl-O to toggle)
+  environment.etc."micro/bindings.json".text = builtins.toJSON {
+    "Ctrl-o" = "command-edit: filemanager";
+  };
+  
   system.activationScripts.microConfig.text = ''
     mkdir -p /home/redleadr/.config/micro
     ln -sf /etc/micro/settings.json /home/redleadr/.config/micro/settings.json
+    ln -sf /etc/micro/bindings.json /home/redleadr/.config/micro/bindings.json
     chown -R redleadr:users /home/redleadr/.config/micro
   '';
 
-  # Auto-install micro LSP plugin on first boot
+
+  # 3. 💾 PLUGIN INSTALLATION: LSP and Filemanager
   system.activationScripts.microLspPlugin.text = ''
     if [ ! -d /home/redleadr/.config/micro/plugins/lsp ]; then
       sudo -u redleadr micro --plugin install lsp || true
     fi
   '';
 
-  # LF config for opening files in micro
-  environment.etc."lf/lfrc".text = ''
-    map enter !micro $f
+  system.activationScripts.microFileManagerPlugin.text = ''
+    if [ ! -d /home/redleadr/.config/micro/plugins/filemanager ]; then
+      # Install the filemanager plugin
+      sudo -u redleadr micro --plugin install filemanager || true
+    fi
   '';
-system.activationScripts.lfConfig.text = ''
-    mkdir -p /home/redleadr/.config/lf
-    ln -sf /etc/lf/lfrc /home/redleadr/.config/lf/lfrc
-    chown -R redleadr:users /home/redleadr/.config/lf
+  
+  # 4. ❌ CLEANUP: Removed all lf/lfrc/lfConfig logic.
+  # Note: You may need to manually remove the old /home/redleadr/.config/lf directory if it exists.
 
-  '';
 
   environment.variables = {
     EDITOR = "micro";
