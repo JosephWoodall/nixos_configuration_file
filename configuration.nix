@@ -1,5 +1,9 @@
 { config, pkgs, ... }:
 
+let
+  user = "redleadr";
+  userHome = "/home/${user}";
+in
 {
   imports = [ ./hardware-configuration.nix ];
 
@@ -37,110 +41,150 @@
   services.displayManager.autoLogin.enable = true;
   services.displayManager.autoLogin.user = "redleadr";
 
-  # ────────────────────── 2025 TERMINAL ENDGAME STACK (Micro-Centric) ──────────────────────
+  ################################################################################
+  # HELIX-CENTRIC DEVELOPMENT STACK
+  ################################################################################
   environment.systemPackages = with pkgs; [
-    # Keeping zellij just for session management (if you still want the `dev` command)
-    zellij micro lazygit # Removed 'lf'
+    # Core editor + tools
+    helix
+    lazygit
+    yazi            # Optional file browser (helix has built-in picker)
+    
+    # Utilities
     fzf ripgrep fd eza bat zoxide delta bottom fastfetch
 
-    pyright
-    ruff
-    rust-analyzer
-    gopls
-    marksman
-    taplo
-    yaml-language-server
+    # LSP servers - Helix auto-detects these
+    pyright                # Python
+    ruff                   # Python linting/formatting  
+    rust-analyzer          # Rust
+    gopls                  # Go
+    nodePackages.typescript-language-server  # TypeScript/JavaScript
+    vscode-langservers-extracted  # HTML, CSS, JSON, ESLint
+    marksman               # Markdown
+    taplo                  # TOML
+    yaml-language-server   # YAML
+    nixd                   # Nix
+    
+    # Formatters (Helix can use these automatically)
+    nodePackages.prettier  # JS/TS/JSON/CSS/HTML/Markdown
+    black                  # Python
+    rustfmt                # Rust
+    nixfmt-classic         # Nix
+    
+    # Debuggers (optional, for future DAP support)
+    lldb                   # Rust/C/C++
 
+    # GUI apps
     kitty google-chrome steam zed-editor redis
   ];
 
-  # Global `dev` command
+  ################################################################################
+  # Simple 'dev' command - just opens helix in your projects directory
+  ################################################################################
   environment.interactiveShellInit = ''
-    # The 'dev' command now just launches a single pane running micro
-    dev() { zellij --layout dev; }
-  '';
-
-  # 1. 🧹 SIMPLIFIED ZELLIJ LAYOUT (Single Pane for Micro)
-  environment.etc."zellij/layouts/dev.kdl".text = ''
-    layout {
-      tab {
-        pane command="micro" { args "."; }
-      }
+    # Open helix in project directory or current directory
+    dev() { 
+      cd ~/projects 2>/dev/null || cd ~
+      hx .
     }
   '';
 
-  system.activationScripts.zellijLayout.text = ''
-    mkdir -p /home/redleadr/.config/zellij/layouts
-    ln -sf /etc/zellij/layouts/dev.kdl /home/redleadr/.config/zellij/layouts/dev.kdl
-    chown -R redleadr:users /home/redleadr/.config/zellij
+  ################################################################################
+  # HELIX CONFIG: Optimized for programming
+  ################################################################################
+  environment.etc."helix/config.toml".text = ''
+    theme = "catppuccin_mocha"
+
+    [editor]
+    line-number = "relative"
+    mouse = true
+    cursorline = true
+    color-modes = true
+    auto-save = true
+    completion-trigger-len = 1
+    auto-format = true
+    rulers = [100]
+    bufferline = "multiple"
+    
+    [editor.statusline]
+    left = ["mode", "spinner", "file-name", "read-only-indicator", "file-modification-indicator"]
+    center = ["diagnostics"]
+    right = ["selections", "position", "file-encoding"]
+    
+    [editor.lsp]
+    display-messages = true
+    display-inlay-hints = true
+    
+    [editor.cursor-shape]
+    insert = "bar"
+    normal = "block"
+    select = "underline"
+    
+    [editor.file-picker]
+    hidden = false
+    
+    [editor.soft-wrap]
+    enable = false
+    
+    [editor.indent-guides]
+    render = true
+    character = "│"
+    
+    [keys.normal]
+    # Space+e for file explorer (alternative to Space+f for file picker)
+    # Helix uses Space+f for fuzzy file finding by default
+    C-s = ":w"  # Ctrl-s to save (optional, for habit)
+    
+    [keys.insert]
+    C-s = ":w"  # Ctrl-s to save from insert mode
   '';
 
-  # Zellij config (Ctrl+arrows) - UNCHANGED
-  environment.etc."zellij/config.kdl".text = ''
-    theme "catppuccin-mocha"
-    keybinds clear-defaults=true {
-      normal {
-        bind "Ctrl Left"  { MoveFocus "Left"; }
-        bind "Ctrl Right" { MoveFocus "Right"; }
-        bind "Ctrl Up"    { MoveFocus "Up"; }
-        bind "Ctrl Down"  { MoveFocus "Down"; }
-      }
-    }
+  environment.etc."helix/languages.toml".text = ''
+    # Language-specific configurations
+    
+    [[language]]
+    name = "python"
+    auto-format = true
+    formatter = { command = "black", args = ["--quiet", "-"] }
+    
+    [[language]]
+    name = "rust"
+    auto-format = true
+    
+    [[language]]
+    name = "go"
+    auto-format = true
+    
+    [[language]]
+    name = "javascript"
+    auto-format = true
+    formatter = { command = "prettier", args = ["--parser", "typescript"] }
+    
+    [[language]]
+    name = "typescript"
+    auto-format = true
+    formatter = { command = "prettier", args = ["--parser", "typescript"] }
+    
+    [[language]]
+    name = "nix"
+    auto-format = true
+    formatter = { command = "nixfmt" }
   '';
 
-  # 2. 🔌 MICRO CONFIG: Global Settings and Bindings
-
-  # Settings
-  environment.etc."micro/settings.json".text = builtins.toJSON {
-    "*.go" = { tabsize = 4; };
-    "*.rs" = { tabsize = 4; };
-    "*.py" = { tabsize = 4; };
-    "*.nix" = { tabsize = 2; };
-
-    tabsize = 2;
-    tabstospaces = true;
-    autosu = true;
-    colorcolumn = 100;
-    diffgutter = true;
-    linter = true;
-    scrollbar = true;
-    lsp = true;
-  };
-  
-  # Bindings for the file manager (Ctrl-O to toggle)
-  environment.etc."micro/bindings.json".text = builtins.toJSON {
-    "Ctrl-o" = "command-edit: filemanager";
-  };
-  
-  system.activationScripts.microConfig.text = ''
-    mkdir -p /home/redleadr/.config/micro
-    ln -sf /etc/micro/settings.json /home/redleadr/.config/micro/settings.json
-    ln -sf /etc/micro/bindings.json /home/redleadr/.config/micro/bindings.json
-    chown -R redleadr:users /home/redleadr/.config/micro
+  # Link helix config to user's home
+  system.activationScripts.helixConfig.text = ''
+    mkdir -p ${userHome}/.config/helix
+    ln -sf /etc/helix/config.toml ${userHome}/.config/helix/config.toml
+    ln -sf /etc/helix/languages.toml ${userHome}/.config/helix/languages.toml
+    chown -R ${user}:users ${userHome}/.config/helix || true
   '';
 
-
-  # 3. 💾 PLUGIN INSTALLATION: LSP and Filemanager
-  system.activationScripts.microLspPlugin.text = ''
-    if [ ! -d /home/redleadr/.config/micro/plugins/lsp ]; then
-      sudo -u redleadr micro --plugin install lsp || true
-    fi
-  '';
-
-  system.activationScripts.microFileManagerPlugin.text = ''
-    if [ ! -d /home/redleadr/.config/micro/plugins/filemanager ]; then
-      # Install the filemanager plugin
-      sudo -u redleadr micro --plugin install filemanager || true
-    fi
-  '';
-  
-  # 4. ❌ CLEANUP: Removed all lf/lfrc/lfConfig logic.
-  # Note: You may need to manually remove the old /home/redleadr/.config/lf directory if it exists.
-
-
+  ################################################################################
+  # Environment variables
+  ################################################################################
   environment.variables = {
-    EDITOR = "micro";
-    VISUAL = "micro";
+    EDITOR = "hx";
+    VISUAL = "hx";
   };
 
   programs.git.enable = true;
