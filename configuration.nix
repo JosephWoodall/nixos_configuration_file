@@ -1,9 +1,37 @@
 { config, pkgs, ... }:
 
 let
-  user = "redleadr";
-  userHome = "/home/${user}";
-in
+  # Minimal Neovim Lua configuration
+  minimalNvimConfig = pkgs.writeText "init.lua" ''
+    -- Bootstrap lazy.nvim
+    local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
+    if not vim.loop.fs_stat(lazypath) then
+      vim.fn.system({
+        "git",
+        "clone",
+        "--filter=blob:none",
+        "https://github.com/folke/lazy.nvim.git",
+        "--branch=stable",
+        lazypath,
+      })
+    end
+    vim.opt.rtp:prepend(lazypath)
+
+    -- Basic options
+    vim.g.mapleader = " "
+    vim.o.number = true
+    vim.o.relativenumber = true
+    vim.o.expandtab = true
+    vim.o.shiftwidth = 2
+    vim.o.tabstop = 2
+    vim.o.smartindent = true
+    vim.o.wrap = false
+    vim.o.termguicolors = true
+
+    -- Load plugins via lazy.nvim (start empty, you can add plugins later)
+    require("lazy").setup({})
+  '';
+ in
 {
   imports = [ ./hardware-configuration.nix ];
 
@@ -41,150 +69,64 @@ in
   services.displayManager.autoLogin.enable = true;
   services.displayManager.autoLogin.user = "redleadr";
 
-  ################################################################################
-  # HELIX-CENTRIC DEVELOPMENT STACK
-  ################################################################################
-  environment.systemPackages = with pkgs; [
-    # Core editor + tools
-    helix
-    lazygit
-    yazi            # Optional file browser (helix has built-in picker)
-    
-    # Utilities
-    fzf ripgrep fd eza bat zoxide delta bottom fastfetch
 
-    # LSP servers - Helix auto-detects these
-    pyright                # Python
-    ruff                   # Python linting/formatting  
-    rust-analyzer          # Rust
-    gopls                  # Go
-    nodePackages.typescript-language-server  # TypeScript/JavaScript
-    vscode-langservers-extracted  # HTML, CSS, JSON, ESLint
-    marksman               # Markdown
-    taplo                  # TOML
-    yaml-language-server   # YAML
-    nixd                   # Nix
-    
-    # Formatters (Helix can use these automatically)
-    nodePackages.prettier  # JS/TS/JSON/CSS/HTML/Markdown
-    black                  # Python
-    rustfmt                # Rust
-    nixfmt-classic         # Nix
-    
-    # Debuggers (optional, for future DAP support)
-    lldb                   # Rust/C/C++
+environment.systemPackages = with pkgs; [
 
-    # GUI apps
-    kitty google-chrome steam zed-editor redis
-  ];
+#############
+# DEVELOPMENT
+############
+neovim
+# LSP servers
+  pyright
+  ruff
+  rust-analyzer
+  marksman
+  yaml-language-server
+  nixd
+ # Formatters
+  nodePackages.prettier
+  black
+  rustfmt
+  nixfmt-classic
+##############
+# IN-MEMORY DB
+##############
+redis 
 
-  ################################################################################
-  # Simple 'dev' command - just opens helix in your projects directory
-  ################################################################################
-  environment.interactiveShellInit = ''
-    # Open helix in project directory or current directory
-    dev() { 
-      cd ~/projects 2>/dev/null || cd ~
-      hx .
-    }
-  '';
 
-  ################################################################################
-  # HELIX CONFIG: Optimized for programming
-  ################################################################################
-  environment.etc."helix/config.toml".text = ''
-    theme = "catppuccin_mocha"
+##########
+# TERMINAL
+##########
+ghostty
 
-    [editor]
-    line-number = "relative"
-    mouse = true
-    cursorline = true
-    color-modes = true
-    auto-save = true
-    completion-trigger-len = 1
-    auto-format = true
-    rulers = [100]
-    bufferline = "multiple"
-    
-    [editor.statusline]
-    left = ["mode", "spinner", "file-name", "read-only-indicator", "file-modification-indicator"]
-    center = ["diagnostics"]
-    right = ["selections", "position", "file-encoding"]
-    
-    [editor.lsp]
-    display-messages = true
-    display-inlay-hints = true
-    
-    [editor.cursor-shape]
-    insert = "bar"
-    normal = "block"
-    select = "underline"
-    
-    [editor.file-picker]
-    hidden = false
-    
-    [editor.soft-wrap]
-    enable = false
-    
-    [editor.indent-guides]
-    render = true
-    character = "│"
-    
-    [keys.normal]
-    # Space+e for file explorer (alternative to Space+f for file picker)
-    # Helix uses Space+f for fuzzy file finding by default
-    C-s = ":w"  # Ctrl-s to save (optional, for habit)
-    
-    [keys.insert]
-    C-s = ":w"  # Ctrl-s to save from insert mode
-  '';
+###########
+# UTILITIES
+###########
+lazygit
+fzf
+ripgrep
+bottom
+fastfetch
 
-  environment.etc."helix/languages.toml".text = ''
-    # Language-specific configurations
-    
-    [[language]]
-    name = "python"
-    auto-format = true
-    formatter = { command = "black", args = ["--quiet", "-"] }
-    
-    [[language]]
-    name = "rust"
-    auto-format = true
-    
-    [[language]]
-    name = "go"
-    auto-format = true
-    
-    [[language]]
-    name = "javascript"
-    auto-format = true
-    formatter = { command = "prettier", args = ["--parser", "typescript"] }
-    
-    [[language]]
-    name = "typescript"
-    auto-format = true
-    formatter = { command = "prettier", args = ["--parser", "typescript"] }
-    
-    [[language]]
-    name = "nix"
-    auto-format = true
-    formatter = { command = "nixfmt" }
-  '';
+##################
+# INTERNET BROWSER
+##################
+google-chrome
 
-  # Link helix config to user's home
-  system.activationScripts.helixConfig.text = ''
-    mkdir -p ${userHome}/.config/helix
-    ln -sf /etc/helix/config.toml ${userHome}/.config/helix/config.toml
-    ln -sf /etc/helix/languages.toml ${userHome}/.config/helix/languages.toml
-    chown -R ${user}:users ${userHome}/.config/helix || true
-  '';
+#######
+# STEAM
+#######
+steam 
+
+
+];
 
   ################################################################################
   # Environment variables
   ################################################################################
   environment.variables = {
-    EDITOR = "hx";
-    VISUAL = "hx";
+    EDITOR = "nvim";
+    VISUAL = "nvim";
   };
 
   programs.git.enable = true;
