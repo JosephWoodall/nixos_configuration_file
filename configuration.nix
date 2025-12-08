@@ -1,8 +1,7 @@
 { config, pkgs, ... }:
 
 let
-  # Minimal Neovim Lua configuration
-  minimalNvimConfig = pkgs.writeText "init.lua" ''
+  nvimConfig = pkgs.writeText "init.lua" ''
     -- Bootstrap lazy.nvim
     local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
     if not vim.loop.fs_stat(lazypath) then
@@ -75,7 +74,13 @@ environment.systemPackages = with pkgs; [
 #############
 # DEVELOPMENT
 ############
-neovim
+    (neovim.override {
+      configure = {
+        customRC = ''
+          luafile ${nvimConfig}
+        '';
+      };
+    })
 # LSP servers
   pyright
   ruff
@@ -88,11 +93,11 @@ neovim
   black
   rustfmt
   nixfmt-classic
+
 ##############
 # IN-MEMORY DB
 ##############
 redis 
-
 
 ##########
 # TERMINAL
