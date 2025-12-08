@@ -26,6 +26,7 @@ let
     vim.o.wrap = false
     vim.o.termguicolors = true
     vim.opt.mouse = "a"
+    vim.cmd("syntax on")
 
     -- Load plugins via lazy.nvim
     require("lazy").setup({
@@ -63,6 +64,21 @@ vim.lsp.config("pyright", {})
     vim.keymap.set("n", "K", vim.lsp.buf.hover, opts)
     vim.keymap.set("n", "<leader>ca", vim.lsp.buf.code_action, opts)
     vim.keymap.set("n", "<leader>rn", vim.lsp.buf.rename, opts)
+  end,
+},
+
+-- Treesitter
+{
+  "nvim-treesitter/nvim-treesitter",
+  run = ":TSUpdate",
+  config = function()
+    require("nvim-treesitter.configs").setup({
+      ensure_installed = {"python", "rust", "json" }, 
+      highlight = {
+        enable = true,
+        additional_vim_regex_highlighting = false,
+      },
+    })
   end,
 },
     	
@@ -241,6 +257,8 @@ environment.systemPackages = with pkgs; [
   nixfmt-classic
  # Clipboard
  xclip
+ # Compiler
+ gcc
 
 ##############
 # IN-MEMORY DB
