@@ -341,9 +341,6 @@ in
   hardware.bluetooth.powerOnBoot = true;
   services.blueman.enable = true;
   
-  # Steam
-  programs.steam.enable = true;
-  
   # Dconf (GNOME settings)
   programs.dconf.enable = true;
   programs.dconf.profiles.user.databases = [{
