@@ -30,6 +30,13 @@ let
     vim.o.termguicolors = true
     vim.opt.mouse = "a"
     vim.cmd("syntax on")
+    
+    -- Custom Keybinds 
+    vim.keymap.set("n", "<C-Left>",  "<C-w>h", { noremap = true, silent = true })
+    vim.keymap.set("n", "<C-Down>",  "<C-w>j", { noremap = true, silent = true })
+    vim.keymap.set("n", "<C-Up>",    "<C-w>k", { noremap = true, silent = true })
+    vim.keymap.set("n", "<C-Right>", "<C-w>l", { noremap = true, silent = true })
+
 
     -- Load plugins via lazy.nvim
     require("lazy").setup({
@@ -167,7 +174,7 @@ let
           })
         end,
       },
-      
+              
       -- Which Key
       {
         "folke/which-key.nvim",
@@ -291,6 +298,7 @@ in
         '';
       };
     })
+    zed-editor
     pyright              # Python LSP
     rust-analyzer        # Rust LSP
     nodePackages.prettier # Multi-language formatter
@@ -299,7 +307,8 @@ in
     nixfmt-classic       # Nix formatter
     xclip                # Clipboard utility
     gcc                  # C compiler (required for Treesitter)
-
+    rustup 		 # Rust 
+    
     # In-Memory Database
     redis
 
