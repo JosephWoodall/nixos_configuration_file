@@ -299,15 +299,27 @@ in
       };
     })
     zed-editor
+    
+    # Python Development
+    python311            # Python 3.11 interpreter
+    python311Packages.pip # pip package manager
+    python311Packages.virtualenv # Virtual environments
+    python311Packages.setuptools # Setup tools for Python packages
+    
+    # LSP Servers
     pyright              # Python LSP
     rust-analyzer        # Rust LSP
+    
+    # Formatters
     nodePackages.prettier # Multi-language formatter
     black                # Python formatter
     rustfmt              # Rust formatter
     nixfmt-classic       # Nix formatter
+    
+    # Development Utilities
     xclip                # Clipboard utility
     gcc                  # C compiler (required for Treesitter)
-    rustup 		 # Rust 
+    rustup 		 # Rust toolchain manager
     
     # In-Memory Database
     redis
